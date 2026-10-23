@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "joelgaff.shurectl",
+  "name": "Shure MV7+",
+  "version": "0.1.0",
+  "author": "Joel Gaff, Jr.",
+  "license": "MIT",
+  "keywords": [
+    "audio",
+    "microphone",
+    "shure",
+    "mv7",
+    "podcast",
+    "recording",
+    "shurectl"
+  ],
+  "description": "Every setting of a Shure MV7+ from the bar: mute, gain and Auto Level, how loud you hear yourself and the computer in the mic's headphone jack, high-pass, compressor, limiter, denoiser, popper stopper, tone, reverb, LEDs, presets, device name and factory reset. Driven by shurectl --json --follow.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Shure MV7+",
+    "description": "Mute, gain, headphone mix, processing, reverb, LEDs and presets of a Shure MV7+ (needs shurectl with --json)",
+    "category": "Audio",
+    "aliases": [
+      "mv7",
+      "shure",
+      "mic",
+      "shurectl"
+    ],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "shurectl": "",
+      "pollMs": 400,
+      "wheelStep": 5
+    },
+    "schema": [
+      {
+        "key": "shurectl",
+        "type": "string",
+        "label": "shurectl binary",
+        "defaultValue": "",
+        "description": "Path to a shurectl that has --json (empty: ~/.local/bin/shurectl, then shurectl on PATH)."
+      },
+      {
+        "key": "pollMs",
+        "type": "integer",
+        "label": "Poll interval (ms)",
+        "min": 100,
+        "max": 5000,
+        "step": 100,
+        "defaultValue": 400,
+        "description": "How often the mic is read so its own mute button and MOTIV app changes show up."
+      },
+      {
+        "key": "wheelStep",
+        "type": "integer",
+        "label": "Scroll step (%)",
+        "min": 1,
+        "max": 25,
+        "step": 1,
+        "defaultValue": 5,
+        "description": "How much scrolling on the bar icon changes how loud you hear yourself."
+      }
+    ]
+  },
+  "homepage": "https://github.com/joelgaff/omarchy-shurectl",
+  "repository": "https://github.com/joelgaff/omarchy-shurectl"
+}
