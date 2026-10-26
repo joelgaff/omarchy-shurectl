@@ -6,7 +6,7 @@ import qs.Commons
 import qs.Ui
 import "Model.js" as Model
 
-// Every MV7+ setting shurectl knows, in two columns:
+// Model-specific settings in two columns:
 //   left   Mic (mute, Auto Level / gain), Headphones (you / computer),
 //          Processing (high-pass, compressor, limiter, denoiser, popper
 //          stopper, tone)
@@ -25,10 +25,11 @@ Panel {
   readonly property var barIdentity: hostWidget || root
 
   readonly property bool connected: host ? host.connected === true : false
-  readonly property var st: connected ? host.s : ({})
-  readonly property var info: connected && host.state.info ? host.state.info : ({})
-  readonly property var features: connected && host.state.features ? host.state.features : ({})
-  readonly property var presets: connected && host.state.presets ? host.state.presets : []
+  readonly property bool ready: host ? Model.ready(host.state) : false
+  readonly property var caps: Model.capabilities(host ? host.state : null)
+  readonly property var st: ready ? host.s : ({})
+  readonly property var info: connected && host && host.state && host.state.info ? host.state.info : ({})
+  readonly property var presets: connected && host && host.state && host.state.presets ? host.state.presets : []
   readonly property bool auto: st.mode === "auto"
   readonly property bool muted: st.muted === true
   readonly property string statusText: host && host.processError !== "" && !connected
@@ -95,6 +96,7 @@ Panel {
     function open(): void { root.openFromHotkey() }
     function close(): void { root.close() }
     function toggle(): void { root.toggle() }
+    function resumeTui(): void { if (root.host) root.host.resumeTui() }
     function mute(): void { root.set("mute", "toggle") }
     function preset(slot: int): void { root.set("preset_load", slot) }
   }
@@ -134,17 +136,17 @@ Panel {
     Item {
       width: parent.width; height: Style.font.bodySmall + Style.spacing.xs
       Label { text: sr.label; anchors.left: parent.left; anchors.right: val.left; anchors.rightMargin: 8 }
-      Dim { id: val; anchors.right: parent.right; text: sr.format(slider.dragging ? slider.liveValue : sr.value) }
+      Dim { id: val; anchors.right: parent.right; text: sr.format(slider.dragging ? Model.snap(slider.liveValue, sr.minimum, sr.maximum, sr.step) : sr.value) }
     }
     PanelSlider {
       id: slider
       width: parent.width
       bar: root.bar
       minimum: sr.minimum; maximum: sr.maximum; step: sr.step
-      integer: true
+      integer: sr.step % 1 === 0
       value: sr.value
       enabled: sr.active
-      onReleased: function(v) { sr.commit(v) }
+      onReleased: function(v) { sr.commit(Model.snap(v, sr.minimum, sr.maximum, sr.step)) }
     }
   }
 
@@ -259,13 +261,13 @@ Panel {
           anchors.verticalCenter: parent.verticalCenter
           spacing: 2
           Text {
-            text: root.connected ? (String(root.info.device_name || "") || "Shure MV7+") : "Shure MV7+"
+            text: Model.modelLabel(root.host ? root.host.state : null)
             textFormat: Text.PlainText
             font.family: root.fontFamily; font.bold: true; font.pixelSize: Style.font.title
             color: root.foreground
           }
           Dim {
-            text: root.connected
+            text: root.ready
               ? "firmware " + root.info.firmware_version + " · S/N " + root.info.factory_serial
               : (root.statusText || "Not connected")
             width: parent.width
@@ -274,10 +276,10 @@ Panel {
         Action {
           id: muteBtn
           anchors.verticalCenter: parent.verticalCenter
-          text: root.muted ? "Muted" : "Live"
+          text: !root.ready ? "Unavailable" : (root.muted ? "Muted" : "Live")
           iconText: root.muted ? "󰍭" : "󰍬"
           active: root.muted
-          enabled: root.connected
+          enabled: root.ready
           tooltipText: "Mute the mic (M, or middle-click the bar icon)"
           onClicked: root.set("mute", "toggle")
         }
@@ -308,8 +310,8 @@ Panel {
       Row {
         width: parent.width
         spacing: Style.spacing.huge
-        enabled: root.connected
-        opacity: root.connected ? 1 : 0.5
+        enabled: root.ready
+        visible: root.ready
 
         // ---------------- Left column ----------------
         Column {
@@ -321,21 +323,34 @@ Panel {
             Choice {
               key: "mode"; options: Model.OPTIONS.mode; current: String(root.st.mode || "manual")
             }
+            Choice {
+              visible: root.caps.mv7 && root.auto
+              label: "Mic position"; key: "auto_position"; options: Model.OPTIONS.auto_position; current: String(root.st.auto_position || "near")
+            }
+            Choice {
+              visible: root.caps.mv7 && root.auto
+              label: "Auto tone"; key: "auto_tone"; options: Model.OPTIONS.auto_tone; current: String(root.st.auto_tone || "natural")
+            }
+            Switch {
+              visible: root.caps.mv7
+              key: "lock"; label: "Configuration lock"; description: "Lock the mic's touch panel"
+              checked: root.st.lock === true
+            }
             SliderRow {
               label: root.auto ? "Gain (Auto Level is setting it)" : "Gain"
               value: Number(root.st.gain_db) || 0
-              minimum: 0; maximum: Number(root.features.gain_max_db) || 36; step: Number(root.features.gain_step_db) || 1
-              active: !root.auto && root.st.gain_lock !== true
+              minimum: 0; maximum: root.caps.gainMax; step: root.caps.gainStep
+              active: !root.auto && (!root.caps.gainLock || root.st.gain_lock !== true)
               format: function(v) { return Model.gainLabel(v) }
               onCommit: function(v) { root.set("gain", v) }
             }
             Switch {
-              visible: root.features.gain_lock === true
+              visible: root.caps.gainLock
               key: "gain_lock"; label: "Gain lock"; description: "The mic ignores gain changes"
               checked: root.st.gain_lock === true
             }
             Switch {
-              visible: root.st.mute_button_disabled !== null && root.st.mute_button_disabled !== undefined
+              visible: root.caps.plus && typeof root.st.mute_button_disabled === "boolean"
               key: "mute_button_disabled"; label: "Ignore the touch panel"; description: "So a brush doesn't mute you"
               checked: root.st.mute_button_disabled === true
             }
@@ -344,12 +359,14 @@ Panel {
           Section {
             title: "HEADPHONES (the jack on the mic)"
             SliderRow {
-              label: "You"
+              label: root.caps.mv7 ? "Monitor mix" : "You"
               value: Number(root.st.monitor_mix) || 0
               format: function(v) { return Model.percentLabel(v) }
               onCommit: function(v) { root.set("monitor_mix", v) }
             }
+            Dim { visible: root.caps.mv7; text: "Mic ↔ Computer (0–100)" }
             SliderRow {
+              visible: root.caps.playback
               label: "Computer"
               value: Number(root.st.playback_mix) || 0
               format: function(v) { return Model.percentLabel(v) }
@@ -359,12 +376,15 @@ Panel {
 
           Section {
             title: "PROCESSING"
-            Choice { label: "High-pass"; key: "hpf"; options: Model.OPTIONS.hpf; current: String(root.st.hpf || "off") }
+            visible: root.caps.plus || (root.caps.mv7 && !root.auto)
+            Choice { visible: root.caps.mv7; label: "EQ preset"; key: "eq_preset"; options: Model.OPTIONS.eq_preset; current: String(root.st.eq_preset || "flat") }
+            Choice { visible: root.caps.hpf; label: "High-pass"; key: "hpf"; options: Model.OPTIONS.hpf; current: String(root.st.hpf || "off") }
             Choice { label: "Compressor"; key: "compressor"; options: Model.OPTIONS.compressor; current: String(root.st.compressor || "off") }
-            Switch { key: "limiter"; label: "Limiter"; checked: root.st.limiter === true }
-            Switch { key: "denoiser"; label: "Denoiser"; description: "Real-time noise reduction"; checked: root.st.denoiser === true }
-            Switch { key: "popper_stopper"; label: "Popper stopper"; description: "Softens P and B pops"; checked: root.st.popper_stopper === true }
+            Switch { visible: root.caps.plus; key: "limiter"; label: "Limiter"; checked: root.st.limiter === true }
+            Switch { visible: root.caps.plus; key: "denoiser"; label: "Denoiser"; description: "Real-time noise reduction"; checked: root.st.denoiser === true }
+            Switch { visible: root.caps.plus; key: "popper_stopper"; label: "Popper stopper"; description: "Softens P and B pops"; checked: root.st.popper_stopper === true }
             SliderRow {
+              visible: root.caps.plus
               label: "Tone"
               value: Number(root.st.tone) || 0
               minimum: -10; maximum: 10; step: 1
@@ -381,6 +401,7 @@ Panel {
 
           Section {
             title: "REVERB"
+            visible: root.caps.reverb
             Switch { key: "reverb_output"; label: "On the recording"; checked: root.st.reverb_output === true }
             Switch { key: "reverb_monitoring"; label: "In the headphones"; checked: root.st.reverb_monitoring === true }
             Choice { key: "reverb_type"; options: Model.OPTIONS.reverb_type; current: String(root.st.reverb_type || "plate") }
@@ -394,6 +415,7 @@ Panel {
 
           Section {
             title: "LEDS"
+            visible: root.caps.led
             Choice { key: "led_behavior"; options: Model.OPTIONS.led_behavior; current: String(root.st.led_behavior || "live") }
             Choice { label: "Brightness"; key: "led_brightness"; options: Model.OPTIONS.led_brightness; current: String(root.st.led_brightness || "high") }
             Choice {
@@ -407,6 +429,13 @@ Panel {
                 label: modelData[1]; key: modelData[0]; current: String(root.st[modelData[0]] || "#000000")
               }
             }
+          }
+
+          Section {
+            title: "LEDS"
+            visible: root.caps.liveMeter || root.caps.nightMode
+            Switch { visible: root.caps.liveMeter; key: "led_live_meter"; label: "Live meter"; checked: root.st.led_live_meter === true }
+            Switch { visible: root.caps.nightMode; key: "led_night_mode"; label: "Night mode"; checked: root.st.led_night_mode === true }
           }
 
           Section {
@@ -455,6 +484,7 @@ Panel {
           Section {
             title: "DEVICE"
             Row {
+              visible: root.caps.rename
               width: parent.width
               spacing: Style.spacing.sm
               TextField {
@@ -478,13 +508,19 @@ Panel {
                 text: root.resetArmed ? "Really reset?" : "Factory reset"
                 iconText: "󰜉"
                 active: root.resetArmed
-                visible: root.features.factory_reset === true
+                visible: root.caps.factoryReset
                 tooltipText: "Puts every setting back to Shure's defaults (click twice)"
                 onClicked: root.factoryReset()
               }
             }
           }
         }
+      }
+
+      Action {
+        visible: root.connected && !root.ready
+        text: "Retry reading settings"
+        onClicked: root.set("refresh", "1")
       }
 
       // Footer: the device's last word.
