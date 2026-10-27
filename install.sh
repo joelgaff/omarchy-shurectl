@@ -16,8 +16,9 @@ CARGO_TARGET_DIR="$target" cargo build --release --locked --manifest-path shurec
 install -Dm755 "$target/release/shurectl" "$HOME/.local/bin/shurectl"
 echo "Installed $("$HOME/.local/bin/shurectl" --version) to ~/.local/bin/shurectl"
 
-# Without the udev rule only root can open the mic's HID device.
-if [ ! -e /etc/udev/rules.d/62-shure.rules ]; then
+# Without the udev rule only root can open the mic's HID device. The AUR
+# shurectl package puts it in /usr/lib.
+if [ ! -e /etc/udev/rules.d/62-shure.rules ] && [ ! -e /usr/lib/udev/rules.d/62-shure.rules ]; then
   echo "Installing the udev rule (needs sudo)"
   sudo install -m644 shurectl/62-shure.rules /etc/udev/rules.d/62-shure.rules
   sudo udevadm control --reload-rules
