@@ -1,0 +1,3 @@
+[submodule "shurectl"]
+	path = shurectl
+	url = https://github.com/joelgaff/shurectl.git

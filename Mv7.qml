@@ -3,7 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// The one owner of `shurectl --json --follow`. A bar widget is made once per
+// The one owner of `shurectl --follow`. A bar widget is made once per
 // monitor; two of them would each open the mic's HID device and read each
 // other's replies. So the process, its last state and the writes live here,
 // and every bar and panel reads the same thing. shurectl prints the mic's
@@ -46,7 +46,7 @@ QtObject {
   function openTui() { tui.running = true }
 
   property Process follow: Process {
-    command: [root.shurectl, "--json", "--follow", String(root.pollMs)]
+    command: [root.shurectl, "--follow", String(root.pollMs)]
     stdinEnabled: true
     stdout: SplitParser {
       onRead: function(line) {
@@ -63,11 +63,13 @@ QtObject {
     }
     onExited: function(code) {
       root.state = null
-      if (root.processError === "") root.processError = "shurectl exited (" + code + ")"
+      if (root.processError.indexOf("unexpected argument") >= 0)
+        root.processError = "This shurectl has no --follow: run install.sh from the plugin's folder"
+      else if (root.processError === "") root.processError = "shurectl exited (" + code + ")"
       restart.start()
     }
   }
-  // An old shurectl without --json exits at once; don't spin on it.
+  // A shurectl without --follow (upstream's) exits at once; don't spin on it.
   property Timer restart: Timer { interval: 5000; onTriggered: follow.running = true }
 
   property Process tui: Process { command: ["xdg-terminal-exec", root.shurectl] }

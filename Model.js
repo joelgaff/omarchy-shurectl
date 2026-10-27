@@ -1,7 +1,7 @@
 .pragma library
 
 // Pure helpers for the Shure MV7+ plugin: the option lists shurectl's
-// `--set` takes (and `--json` reports), value labels, meter maths, and the
+// `--set` takes (and `--state` reports), value labels, meter maths, and the
 // bar tooltip. No Qt objects in here so it can be unit-tested with any JS.
 
 var OPTIONS = {

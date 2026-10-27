@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "joelgaff.shurectl",
   "name": "Shure MV7+",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Joel Gaff, Jr.",
   "license": "MIT",
   "keywords": [
@@ -14,7 +14,7 @@
     "recording",
     "shurectl"
   ],
-  "description": "Every setting of a Shure MV7+ from the bar: mute, gain and Auto Level, how loud you hear yourself and the computer in the mic's headphone jack, high-pass, compressor, limiter, denoiser, popper stopper, tone, reverb, LEDs, presets, device name and factory reset. Driven by shurectl --json --follow.",
+  "description": "Every setting of a Shure MV7+ from the bar: mute, gain and Auto Level, how loud you hear yourself and the computer in the mic's headphone jack, high-pass, compressor, limiter, denoiser, popper stopper, tone, reverb, LEDs, presets, device name and factory reset. Driven by shurectl --follow (the joelgaff/shurectl fork, built by install.sh).",
   "kinds": [
     "bar-widget"
   ],
@@ -23,7 +23,7 @@
   },
   "barWidget": {
     "displayName": "Shure MV7+",
-    "description": "Mute, gain, headphone mix, processing, reverb, LEDs and presets of a Shure MV7+ (needs shurectl with --json)",
+    "description": "Mute, gain, headphone mix, processing, reverb, LEDs and presets of a Shure MV7+ (needs the joelgaff/shurectl fork; run install.sh)",
     "category": "Audio",
     "aliases": [
       "mv7",
@@ -44,7 +44,7 @@
         "type": "string",
         "label": "shurectl binary",
         "defaultValue": "",
-        "description": "Path to a shurectl that has --json (empty: ~/.local/bin/shurectl, then shurectl on PATH)."
+        "description": "Path to a shurectl that has --follow (empty: ~/.local/bin/shurectl, where install.sh puts it)."
       },
       {
         "key": "pollMs",

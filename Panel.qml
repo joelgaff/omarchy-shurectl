@@ -11,7 +11,7 @@ import "Model.js" as Model
 //          Processing (high-pass, compressor, limiter, denoiser, popper
 //          stopper, tone)
 //   right  Reverb, LEDs, Presets, Device (name, firmware, factory reset)
-// Reads come from the host BarWidget's `shurectl --json --follow`; writes go
+// Reads come from the host BarWidget's `shurectl --follow`; writes go
 // back through host.set(key, value) onto that process's stdin.
 Panel {
   id: root
