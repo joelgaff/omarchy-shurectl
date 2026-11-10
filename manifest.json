@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "joelgaff.shurectl",
-  "name": "Shure MV7+",
-  "version": "0.2.0",
+  "name": "Shure MV7 / MV7+",
+  "version": "0.3.0",
   "author": "Joel Gaff, Jr.",
   "license": "MIT",
   "keywords": [
@@ -14,7 +14,7 @@
     "recording",
     "shurectl"
   ],
-  "description": "Every setting of a Shure MV7+ from the bar: mute, gain and Auto Level, how loud you hear yourself and the computer in the mic's headphone jack, high-pass, compressor, limiter, denoiser, popper stopper, tone, reverb, LEDs, presets, device name and factory reset. Driven by shurectl --follow (the joelgaff/shurectl fork, built by install.sh).",
+  "description": "Control Shure MV7 and MV7+ microphones from the bar with model-specific gain, Auto Level, headphone mix, processing, LEDs and presets. Driven by shurectl --follow (the joelgaff/shurectl fork, built by install.sh).",
   "kinds": [
     "bar-widget"
   ],
@@ -22,8 +22,8 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Shure MV7+",
-    "description": "Mute, gain, headphone mix, processing, reverb, LEDs and presets of a Shure MV7+ (needs the joelgaff/shurectl fork; run install.sh)",
+    "displayName": "Shure MV7 / MV7+",
+    "description": "Mute, gain, headphone mix, processing and presets for Shure MV7 and MV7+ (needs the joelgaff/shurectl fork; run install.sh)",
     "category": "Audio",
     "aliases": [
       "mv7",
@@ -64,7 +64,7 @@
         "max": 25,
         "step": 1,
         "defaultValue": 5,
-        "description": "How much scrolling on the bar icon changes how loud you hear yourself."
+        "description": "How much scrolling changes the headphone mix: toward computer audio on MV7, or mic volume on MV7+."
       }
     ]
   },

@@ -7,8 +7,7 @@ import "Model.js" as Model
 // Bar entry point. The mic's state and the one shurectl process live in the
 // Mv7 singleton (shared by every bar); this draws the icon, a side-view mic
 // that is red while muted and hollow while the mic is unplugged, and hosts
-// the panel. Middle-click mutes, scrolling changes how loud you hear
-// yourself, right-click opens the shurectl terminal UI.
+// the panel. Middle-click mutes, scrolling changes the headphone mix, right-click opens the shurectl terminal UI.
 BarWidget {
   id: root
   moduleName: "joelgaff.shurectl"
@@ -21,11 +20,13 @@ BarWidget {
   readonly property var state: Mv7.state
   readonly property string processError: Mv7.processError
   readonly property bool connected: Mv7.connected
+  readonly property bool ready: Mv7.ready
   readonly property var s: Mv7.s
   readonly property bool muted: Mv7.muted
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   function set(key, value) { Mv7.set(key, value) }
   function openTui() { Mv7.openTui() }
+  function resumeTui() { Mv7.resumeTui() }
 
   // ---- panel ---------------------------------------------------------------
   function injectPanel() {
@@ -63,8 +64,8 @@ BarWidget {
     bar: root.bar
     slotSize: Style.bar.statusSlot
     active: root.muted
-    dimmed: !root.connected
-    tooltipText: root.opened ? "" : Model.tooltip(root.state)
+    dimmed: !root.ready
+    tooltipText: root.opened ? "" : (!root.connected && root.processError !== "" ? root.processError : Model.tooltip(root.state))
     iconComponent: Component {
       // A dynamic mic seen from the side, on a short stand: the MV7+ shape,
       // not the generic mic glyph. Solid when connected, outline when not.
